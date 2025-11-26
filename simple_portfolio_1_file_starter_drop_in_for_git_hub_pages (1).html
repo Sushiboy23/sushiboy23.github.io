@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zac Kwek — Portfolio</title>
+  <meta name="description" content="Software engineering student — projects, skills, contact." />
+  <style>
+    :root{--bg:#0e0f12;--panel:#14161b;--ink:#e8eaed;--muted:#a9b0b7;--brand:#6ee7ff;--accent:#a78bfa}
+    *{box-sizing:border-box}html,body{height:100%}
+    body{margin:0;font:16px/1.6 system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial;background:radial-gradient(1200px 800px at 80% -10%,#1a2030,transparent) ,var(--bg);color:var(--ink)}
+    a{color:var(--brand);text-decoration:none}a:hover{text-decoration:underline}
+    .wrap{max-width:1050px;margin:0 auto;padding:32px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:8px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--accent));box-shadow:0 10px 25px rgba(110,231,255,.25)}
+    h1{font-size:clamp(24px,3vw,32px);margin:0}
+    nav{display:flex;gap:18px;flex-wrap:wrap}
+    nav a{font-weight:600;color:var(--ink);opacity:.85}
+    nav a:hover{opacity:1}
+
+    .hero{margin:56px 0 28px;display:grid;grid-template-columns:1.4fr .9fr;gap:28px}
+    .card{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:18px;padding:22px;backdrop-filter: blur(6px)}
+    .shadow{box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .kicker{letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-size:12px}
+    .title{font-size:clamp(28px,4vw,44px);line-height:1.15;margin:.25em 0}
+    .sub{color:var(--muted);max-width:60ch}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:13px;color:var(--muted)}
+    .pill .dot{width:8px;height:8px;border-radius:99px;background:var(--brand);box-shadow:0 0 16px var(--brand)}
+    .cta{display:flex;gap:12px;margin-top:18px}
+    .btn{display:inline-flex;align-items:center;gap:10px;padding:12px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:#0f1116;color:var(--ink);font-weight:600}
+    .btn.primary{background:linear-gradient(135deg,#2dd4bf,#60a5fa);color:#0b0e13;border:none}
+    .btn:hover{transform:translateY(-1px)}
+
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .proj{position:relative;overflow:hidden}
+    .tag{font-size:12px;color:var(--muted)}
+    .proj h3{margin:.25em 0 .4em}
+    .thumb{height:140px;border-radius:12px;background:linear-gradient(145deg,#0b0e13 0%,#12151b 60%,#1d2230 100%);border:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center}
+    .thumb span{opacity:.6}
+
+    .skills{display:flex;flex-wrap:wrap;gap:10px}
+    .chip{padding:8px 12px;border-radius:999px;background:#12151b;border:1px solid rgba(255,255,255,.08);font-size:13px;color:var(--muted)}
+
+    .twocol{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+
+    footer{margin:56px 0 8px;color:var(--muted);font-size:14px}
+    .inline-list{display:flex;gap:14px;flex-wrap:wrap}
+
+    @media (max-width:900px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr}.twocol{grid-template-columns:1fr}}
+    @media (max-width:640px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Zac Kwek</h1>
+          <div class="kicker">Software Engineering Student · Developer</div>
+        </div>
+      </div>
+      <nav>
+        <a href="#projects">Projects</a>
+        <a href="#skills">Skills</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div class="card shadow">
+        <div class="pill"><span class="dot"></span> Open to 2026 grad roles</div>
+        <h2 class="title">I build practical APIs, tidy UIs, and student projects that ship.</h2>
+        <p class="sub">Currently finishing a double degree at Monash. My work spans mobile app development (RacquetSwap), cloud deployment, and data-driven backend systems.</p>
+        <div class="cta">
+          <a class="btn primary" href="#projects">See projects</a>
+          <a class="btn" href="#contact">Get in touch</a>
+        </div>
+      </div>
+      <div class="card">
+        <div class="kicker">Quick facts</div>
+        <ul>
+          <li>📱 iOS: UIKit, Firestore, Auth, diffable data source</li>
+          <li>🗃️ Databases: Cassandra, MongoDB, Neo4j</li>
+          <li>💡 Interested in API design, automation, and user experience</li>
+          <li>🎾 Built <em>RacquetSwap</em> marketplace (Swift)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="projects" class="twocol">
+      <div class="card">
+        <div class="kicker">Featured</div>
+        <div class="proj">
+          <div class="tag">iOS · Swift · Firestore</div>
+          <h3>RacquetSwap</h3>
+          <p>A marketplace app for second-hand tennis racquets with Explore, Wishlist, and Sell List flows.</p>
+          <div class="thumb"><span>App screenshots here</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="proj">
+          <div class="tag">Python · Neo4j</div>
+          <h3>Airbnb Graph Analytics</h3>
+          <p>Cypher graph queries for location-based insights and pattern matching between listings.</p>
+          <div class="thumb"><span>Graph query visuals</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid" aria-label="More projects">
+      <article class="card proj">
+        <div class="tag">Cassandra</div>
+        <h3>Wide-row Modelling Labs</h3>
+        <p>Explored query-driven table design, partition key strategies, and indexing trade-offs.</p>
+        <div class="thumb"><span>Data model sketch</span></div>
+      </article>
+      <article class="card proj">
+        <div class="tag">Swift · UIKit</div>
+        <h3>Superhero Party App</h3>
+        <p>iOS project implementing compositional layouts, CoreData persistence, and fun animated UI.</p>
+        <div class="thumb"><span>UI preview</span></div>
+      </article>
+      <article class="card proj">
+        <div class="tag">Python · Data</div>
+        <h3>Airbnb Data Analysis</h3>
+        <p>Data processing scripts for cleaning and aggregating property listings using pandas and matplotlib.</p>
+        <div class="thumb"><span>Data chart</span></div>
+      </article>
+    </section>
+
+    <section id="skills" class="card" style="margin-top:28px">
+      <div class="kicker">Skills</div>
+      <div class="skills">
+        <span class="chip">Swift (UIKit)</span>
+        <span class="chip">Firebase (Auth, Firestore)</span>
+        <span class="chip">Docker</span>
+        <span class="chip">Neo4j / Cypher</span>
+        <span class="chip">Cassandra</span>
+        <span class="chip">GitHub Actions</span>
+        <span class="chip">SQL</span>
+        <span class="chip">Python</span>
+      </div>
+    </section>
+
+    <section id="about" class="card" style="margin-top:18px">
+      <div class="kicker">About</div>
+      <p>Hi, I’m Zac — a Melbourne-based software engineering student passionate about building clean, efficient, and user-friendly applications. I enjoy full-stack projects that combine solid backend logic with intuitive front-end design.</p>
+    </section>
+
+    <section id="contact" class="card" style="margin-top:18px">
+      <div class="kicker">Contact</div>
+      <p>Email: <a href="mailto:zkwe0001@student.monash.edu">zkwe0001@student.monash.edu</a> · GitHub: <a href="#">add-your-link</a> · LinkedIn: <a href="#">add-your-link</a></p>
+    </section>
+
+    <footer>
+      <div class="inline-list">
+        <span>© <span id="y"></span> Zac Kwek</span>
+        <span>•</span>
+        <a href="#">Resume (PDF)</a>
+        <span>•</span>
+        <a href="#">View source</a>
+      </div>
+    </footer>
+  </div>
+
+  <script>document.getElementById('y').textContent=new Date().getFullYear()</script>
+</body>
+</html>
