@@ -92,8 +92,8 @@ export default function Home() {
         <h3 className="sectionTitle">About</h3>
         <div className="card">
           <p>
-            Hi, I’m Zac — Melbourne-based, building software projects across web, mobile, and integration.
-            I like clean code, thoughtful UX, and projects that solve real problems.
+            Hi, I’m Zac a Business and IT student at Monash University, graduating in May 2026.
+            I’m interested in software development and Finance. I enjoy working on projects that turn ideas into usable, real-world applications.
           </p>
         </div>
       </section>
