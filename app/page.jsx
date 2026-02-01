@@ -19,10 +19,10 @@ export default function Home() {
       link: "#",
     },
     {
-      title: "Portfolio Website (This Site)",
-      tag: "Next.js · React · CSS",
+      title: "API Testing & Mocking",
+      tag: "MuleSoft",
       desc:
-        "A personal portfolio built with Next.js and React. Deployed on GitHub Pages with a custom domain, designed to showcase projects, skills, and contact details cleanly.",
+        "A project to enable API Mocking services and automate tests to improved reliability and speed up development",
       link: "#",
     },
   ];
