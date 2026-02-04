@@ -46,7 +46,7 @@ export default function Home() {
           <div className="logo" aria-hidden="true" />
           <div>
             <h1 className="name">Zac Kwek</h1>
-            <p className="kicker">Business & IT Student · Developer</p>
+            <p className="kicker">Business & IT Student</p>
           </div>
         </div>
 
@@ -62,12 +62,12 @@ export default function Home() {
       {/* HERO (now 2-column: text on left, photo on right) */}
       <section className="hero">
         <div className="card">
-          <h2 className="title">I build practical apps and clean, usable software.</h2>
+          <h2 className="title">Software Development & Financial Analysis</h2>
 
           <p className="sub">
             I’m Zac — a Business & IT student at Monash University graduating in May 2026.
             I’m interested in software development and finance, and I enjoy building projects
-            that turn ideas into real-world applications.
+            that provide real world benefits.
           </p>
 
           <div className="cta">
@@ -83,7 +83,7 @@ export default function Home() {
         {/* Photo card */}
         <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
           <img
-            src="/zac.jpg"
+            src="/japanzac.jpg"
             alt="Zac Kwek headshot"
             style={{
               width: 180,
