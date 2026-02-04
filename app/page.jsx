@@ -28,7 +28,7 @@ export default function Home() {
         "Safety disclaimers and guarded responses",
       ],
       tech: ["Python", "LLM API", "Embeddings", "RAG"],
-      image: "financechatbot.png"
+      image: "financechatbot1.png"
     },
     {
       title: "API Testing & Mocking",
@@ -41,7 +41,7 @@ export default function Home() {
         "Improved reliability + faster dev cycle",
       ],
       tech: ["MuleSoft", "MUnit", "Mocking", "Testing"],
-      image: "mulesoft.png"
+      image: "mulesoft1.png"
     },
   ];
 
