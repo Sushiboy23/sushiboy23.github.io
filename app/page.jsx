@@ -34,7 +34,7 @@ export default function Home() {
       title: "API Testing & Mocking",
       tag: "MuleSoft · MUnit",
       desc:
-        "Built mock services and automated tests to improve reliability and speed up integration development. Focused on test coverage, maintainable mocks, and repeatable CI-friendly checks.",
+        "Built mock services and automated tests to improve reliability and speed up integration development. Focused on test coverage, maintainable mocks, and repeatable test cases.",
       highlights: [
         "Automated tests with MUnit",
         "Mock API responses for stable testing",
@@ -57,6 +57,7 @@ export default function Home() {
     "LLMs / Embeddings",
     "Cassandra",
     "Neo4j / Cypher",
+    "MuleSoft"
   ];
 
   return (
@@ -86,7 +87,7 @@ export default function Home() {
 
           <p className="sub">
             I’m Zac — a Business & IT student at Monash University graduating in May 2026.
-            I’m interested in software development and finance, and I enjoy building projects
+            I’m interested in software development & finance, and I enjoy building projects
             that provide real world benefits.
           </p>
 
@@ -178,8 +179,8 @@ export default function Home() {
             <p className="tag">Integration · APIs · Testing</p>
             <h4>Integration Engineering (Projects)</h4>
             <p>
-              Worked on API/integration work including testing automation, mock services, and reliability improvements
-              for real dev environments.
+              Worked on API/integration work including data retrieval and transformation, testing automation, mocking services, and reliability improvements
+              for dev environments.
             </p>
           </div>
 
@@ -187,8 +188,7 @@ export default function Home() {
             <p className="tag">Finance · Analysis</p>
             <h4>Finance Interest & Modelling</h4>
             <p>
-              Interested in financial markets, valuation, and building tools that help explain or analyse finance
-              concepts clearly.
+              Interested in financial markets and modelling, portfolio valuation and stock / options analysis.
             </p>
           </div>
 
@@ -196,8 +196,7 @@ export default function Home() {
             <p className="tag">Student · Projects</p>
             <h4>Software Projects</h4>
             <p>
-              Built web + iOS projects end-to-end, focusing on clean UI, structured code, and practical features
-              that feel “real”.
+              Built various software applications and tools to deepen my technical understading.
             </p>
           </div>
         </div>
@@ -208,10 +207,12 @@ export default function Home() {
         <h3 className="sectionTitle">About</h3>
         <div className="card">
           <p>
-            Hi, I’m Zac — a Business & IT student at Monash University graduating in May 2026.
-            I enjoy building clean, user-friendly applications across web and iOS, and I like working
-            on projects that combine solid backend logic with tidy front-end UI. I’m especially interested
-            in software development, integration, and finance-related problem solving.
+            Hi, I’m Zac a Business & IT student at Monash University majoring in software development and finance, graduating in May 2026. 
+            In my free time I enjoy building software projects such as an AI Chatbot that I am very proud about and also manage my own stock portfolio
+            where I invest my part-time pay and grow/shrink my portfolio. For non-academic hobbies I enjoy playing tennis and competing as well
+            as hanging out with friends or staying in to binge watch netflix. 
+            
+            Thanks for taking the time to view this page. 
           </p>
         </div>
       </section>
