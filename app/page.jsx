@@ -52,11 +52,9 @@ export default function Home() {
     "Firebase (Auth, Firestore)",
     "SQL",
     "Git / GitHub",
-    "Docker",
     "Python",
     "LLMs / Embeddings",
     "Cassandra",
-    "Neo4j / Cypher",
     "MuleSoft"
   ];
 
