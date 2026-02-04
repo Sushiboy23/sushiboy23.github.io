@@ -83,11 +83,11 @@ export default function Home() {
         {/* Photo card */}
         <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
           <img
-            src="/japanzac.jpg"
+            src="/japanzac.jpeg"
             alt="Zac Kwek headshot"
             style={{
-              width: 180,
-              height: 180,
+              width: 300,
+              height: 300,
               borderRadius: 16,
               border: "1px solid rgba(255,255,255,0.10)",
               objectFit: "cover",
