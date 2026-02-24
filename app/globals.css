@@ -214,3 +214,81 @@ a:hover{text-decoration:underline}
   cursor: not-allowed;
 }
 
+/* =========================
+   Mobile fixes (add at bottom)
+   ========================= */
+
+/* Stop random horizontal scroll */
+html, body { overflow-x: hidden; }
+img { max-width: 100%; height: auto; display: block; }
+
+/* Smaller padding on phones */
+@media (max-width: 600px) {
+  .wrap { padding: 16px; }
+
+  /* Header: stack nicely */
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .nav {
+    width: 100%;
+    gap: 12px;
+  }
+
+  /* Hero: already 1 col under 900px, but tighten spacing */
+  .hero { margin: 24px 0 18px; gap: 14px; }
+
+  /* Make photo responsive instead of fixed size */
+  .heroPhoto {
+    width: 100%;
+    max-width: 420px;
+    height: auto;
+    aspect-ratio: 4 / 3;
+  }
+
+  /* Title + text scale */
+  .title { font-size: 28px; }
+  .sub { max-width: 100%; }
+
+  /* Buttons: stack */
+  .cta { flex-direction: column; }
+  .btn { width: 100%; justify-content: center; }
+
+  /* Featured projects: stack image under text */
+  .featuredRow {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  /* Kill the RTL trick on mobile (it can feel glitchy) */
+  .featuredRow.reverse { direction: ltr; }
+  .featuredRow.reverse .featuredContent,
+  .featuredRow.reverse .featuredVisual { direction: ltr; }
+
+  /* Reduce image height so it doesn't dominate */
+  .projectImage {
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+
+  .featuredVisual { padding: 10px; }
+}
+
+/* Tablet-ish tuning (optional but nice) */
+@media (min-width: 601px) and (max-width: 900px) {
+  .wrap { padding: 22px; }
+
+  .heroPhoto {
+    width: 100%;
+    max-width: 520px;
+    height: auto;
+    aspect-ratio: 4 / 3;
+  }
+
+  .featuredRow { grid-template-columns: 1fr; }
+  .featuredRow.reverse { direction: ltr; }
+  .projectImage { height: auto; aspect-ratio: 16 / 9; }
+}
