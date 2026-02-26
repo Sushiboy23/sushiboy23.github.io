@@ -27,7 +27,7 @@ export default function SushiKnightClient({ onStats }) {
       gameRef.current = null;
     };
   }, []);
-
+   /*
   return (
     <div
       ref={containerRef}
@@ -35,6 +35,22 @@ export default function SushiKnightClient({ onStats }) {
         width: "100%",
         height: "calc(100vh - 180px)", // fills screen minus header area
         minHeight: 500,
+        borderRadius: 16,
+        overflow: "hidden",
+        border: "1px solid rgba(255,255,255,0.12)",
+      }}
+    />
+  );
+  */
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        width: "100%",
+        maxWidth: 1100,
+        height: "70vh",      // ✅ important: gives Phaser space
+        minHeight: 520,      // desktop fallback
         borderRadius: 16,
         overflow: "hidden",
         border: "1px solid rgba(255,255,255,0.12)",

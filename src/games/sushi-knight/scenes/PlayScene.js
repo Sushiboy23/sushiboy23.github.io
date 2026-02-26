@@ -15,30 +15,19 @@ export default class PlayScene extends Phaser.Scene {
     // ======================
     const map = this.make.tilemap({ key: "level1" });
 
-    // IMPORTANT:
-    // 1) "summer_tileset" = tileset NAME inside the JSON
-    // 2) "summer_tiles"   = image key you load in BootScene
     const tileset = map.addTilesetImage("summer_tileset", "summer_tiles", 32, 32, 0, 0);
 
     const groundLayer = map.createLayer("Ground", tileset, 0, 0);
     const propsLayer = map.createLayer("Props", tileset, 0, 0);
 
-    // Props on top visually
     propsLayer.setDepth(10);
 
-    // World bounds from map size
     this.mapW = map.widthInPixels;
     this.mapH = map.heightInPixels;
     this.physics.world.setBounds(0, 0, this.mapW, this.mapH);
-
-    // Camera bounds from map
     this.cameras.main.setBounds(0, 0, this.mapW, this.mapH);
 
-    // ======================
-    // Collisions
-    // ======================
-    // We only want "Props" to block movement.
-    // In your tileset JSON, any blocking tiles should have: { collides: true }
+    // Only props block movement
     propsLayer.setCollisionByProperty({ collides: true });
 
     // ======================
@@ -61,7 +50,6 @@ export default class PlayScene extends Phaser.Scene {
     this.player.setDrag(1400, 1400);
     this.player.setMaxVelocity(280, 280);
 
-    // collide player with props layer (trees/houses etc)
     this.physics.add.collider(this.player, propsLayer);
 
     // ======================
@@ -82,11 +70,22 @@ export default class PlayScene extends Phaser.Scene {
     this.spawnItem("heart", 1100, 520);
 
     // ======================
-    // Input
+    // Input (Desktop)
     // ======================
     this.cursors = this.input.keyboard.createCursorKeys();
     this.wasd = this.input.keyboard.addKeys("W,A,S,D");
     this.attackKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+    // ======================
+    // Input (Mobile)
+    // ======================
+    this.isMobile = !this.sys.game.device.os.desktop;
+    this.touchMove = { vx: 0, vy: 0, active: false };
+    this.touchAttack = false;
+
+    if (this.isMobile) {
+      this.createMobileControls();
+    }
 
     // spawn protection
     this.playerInvulnUntil = this.time.now + 1000;
@@ -136,9 +135,110 @@ export default class PlayScene extends Phaser.Scene {
     });
   }
 
+  // ======================
+  // Mobile Controls
+  // ======================
+  createMobileControls() {
+    const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(2000);
+
+    const placeUI = (w, h) => {
+      // attack button
+      const ax = w - 110;
+      const ay = h - 110;
+
+      this.attackBtn?.setPosition(ax, ay);
+      this.attackTxt?.setPosition(ax - 32, ay - 18);
+
+      // joystick
+      const jx = 120;
+      const jy = h - 120;
+
+      this.joyCenter = { x: jx, y: jy };
+      this.joyBase?.setPosition(jx, jy);
+      this.joyKnob?.setPosition(jx, jy);
+    };
+
+    // Attack button
+    this.attackBtn = this.add
+      .circle(this.scale.width - 110, this.scale.height - 110, 80, 0xffffff, 0.12)
+      .setStrokeStyle(3, 0xffffff, 0.25)
+      .setInteractive({ useHandCursor: true });
+
+    this.attackTxt = this.add.text(this.scale.width - 142, this.scale.height - 128, "ATK", {
+      fontSize: "18px",
+    });
+
+    ui.add([this.attackBtn, this.attackTxt]);
+
+    this.attackBtn.on("pointerdown", () => (this.touchAttack = true));
+    this.attackBtn.on("pointerup", () => (this.touchAttack = false));
+    this.attackBtn.on("pointerout", () => (this.touchAttack = false));
+
+    // Joystick
+    const baseR = 70;
+    const knobR = 32;
+
+    this.joyRadius = baseR;
+    this.joyCenter = { x: 120, y: this.scale.height - 120 };
+    this.joyBase = this.add
+      .circle(this.joyCenter.x, this.joyCenter.y, baseR, 0xffffff, 0.08)
+      .setStrokeStyle(3, 0xffffff, 0.18);
+    this.joyKnob = this.add.circle(this.joyCenter.x, this.joyCenter.y, knobR, 0xffffff, 0.18);
+
+    ui.add([this.joyBase, this.joyKnob]);
+
+    this.joyPointerId = null;
+
+    this.input.on("pointerdown", (p) => {
+      // left side only, so it doesn't conflict with attack button
+      if (p.x > this.scale.width * 0.55) return;
+      this.joyPointerId = p.id;
+      this.updateJoystick(p);
+    });
+
+    this.input.on("pointermove", (p) => {
+      if (this.joyPointerId !== p.id) return;
+      this.updateJoystick(p);
+    });
+
+    this.input.on("pointerup", (p) => {
+      if (this.joyPointerId !== p.id) return;
+      this.joyPointerId = null;
+      this.touchMove = { vx: 0, vy: 0, active: false };
+      this.joyKnob.setPosition(this.joyCenter.x, this.joyCenter.y);
+    });
+
+    // keep UI positioned on resize
+    this.scale.on("resize", (gs) => placeUI(gs.width, gs.height));
+    placeUI(this.scale.width, this.scale.height);
+  }
+
+  updateJoystick(pointer) {
+    const dx = pointer.x - this.joyCenter.x;
+    const dy = pointer.y - this.joyCenter.y;
+
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    const clamped = Math.min(len, this.joyRadius);
+
+    const nx = (dx / len) * clamped;
+    const ny = (dy / len) * clamped;
+
+    this.joyKnob.setPosition(this.joyCenter.x + nx, this.joyCenter.y + ny);
+
+    this.touchMove = {
+      vx: nx / this.joyRadius,
+      vy: ny / this.joyRadius,
+      active: true,
+    };
+  }
+
+  // ======================
+  // Main update
+  // ======================
   update(_, dtMs) {
     const dt = dtMs / 1000;
 
+    // Desktop movement
     const left = this.cursors.left.isDown || this.wasd.A.isDown;
     const right = this.cursors.right.isDown || this.wasd.D.isDown;
     const up = this.cursors.up.isDown || this.wasd.W.isDown;
@@ -157,6 +257,12 @@ export default class PlayScene extends Phaser.Scene {
       const inv = 1 / Math.sqrt(2);
       vx *= inv;
       vy *= inv;
+    }
+
+    // Mobile movement overrides if joystick active
+    if (this.isMobile && this.touchMove.active) {
+      vx = this.touchMove.vx * speed;
+      vy = this.touchMove.vy * speed;
     }
 
     if (vx < 0) this.player.setFlipX(true);
@@ -178,15 +284,21 @@ export default class PlayScene extends Phaser.Scene {
       }
     }
 
+    // Enemies chase player
     this.enemies.getChildren().forEach((e) => {
       this.physics.moveToObject(e, this.player, 95);
     });
 
+    // Cooldown
     this.playerStats.attackCooldown = Math.max(0, this.playerStats.attackCooldown - dt);
 
-    if (Phaser.Input.Keyboard.JustDown(this.attackKey) && this.playerStats.attackCooldown <= 0) {
+    const pressedAttack =
+      Phaser.Input.Keyboard.JustDown(this.attackKey) || (this.isMobile && this.touchAttack);
+
+    if (pressedAttack && this.playerStats.attackCooldown <= 0) {
       this.playerStats.attackCooldown = 0.55;
       this.playAttack();
+      this.touchAttack = false; // prevent spam
     }
   }
 
@@ -198,13 +310,10 @@ export default class PlayScene extends Phaser.Scene {
 
     this.player.anims.play("knight-attack", true);
 
-    this.time.delayedCall(120, () => {
-      this.slashAttack();
-    });
+    this.time.delayedCall(120, () => this.slashAttack());
 
     this.player.once(Phaser.Animations.Events.ANIMATION_COMPLETE, (anim) => {
       if (anim?.key !== "knight-attack") return;
-
       this.isAttacking = false;
       this.player.anims.stop();
       this.player.setFrame(0);
@@ -214,7 +323,6 @@ export default class PlayScene extends Phaser.Scene {
   spawnEnemy(type, x, y) {
     const e = this.enemies.create(x, y, type).setScale(0.25);
     e.setCollideWorldBounds(true);
-
     e.hp = type === "maguro" ? 70 : 50;
     e.atk = type === "maguro" ? 12 : 8;
     return e;
