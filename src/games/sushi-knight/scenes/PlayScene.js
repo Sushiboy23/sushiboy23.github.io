@@ -15,14 +15,7 @@ export default class PlayScene extends Phaser.Scene {
     // ======================
     const map = this.make.tilemap({ key: "level1" });
 
-    const tileset = map.addTilesetImage(
-      "summer_tileset",
-      "summer_tiles",
-      32,
-      32,
-      0,
-      0
-    );
+    const tileset = map.addTilesetImage("summer_tileset", "summer_tiles", 32, 32, 0, 0);
 
     const groundLayer = map.createLayer("Ground", tileset, 0, 0);
     const propsLayer = map.createLayer("Props", tileset, 0, 0);
@@ -81,12 +74,10 @@ export default class PlayScene extends Phaser.Scene {
     // ======================
     this.cursors = this.input.keyboard.createCursorKeys();
     this.wasd = this.input.keyboard.addKeys("W,A,S,D");
-    this.attackKey = this.input.keyboard.addKey(
-      Phaser.Input.Keyboard.KeyCodes.SPACE
-    );
+    this.attackKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
     // ======================
-    // Input (Mobile)
+    // Input (Mobile) — DRAG to move, TAP to attack
     // ======================
     // ✅ More reliable than os.desktop (some mobile browsers report "desktop")
     this.isMobile =
@@ -94,21 +85,28 @@ export default class PlayScene extends Phaser.Scene {
       this.sys.game.device.os.android ||
       this.sys.game.device.os.iOS;
 
+    // Movement vector coming from finger drag (no joystick UI)
     this.touchMove = { vx: 0, vy: 0, active: false };
+
+    // Tap-to-attack flag
     this.touchAttack = false;
 
+    // Tap/drag detection
+    this.tapStart = null;
+    this.tapMoved = false;
+    this.tapMoveThreshold = 14; // px (tiny wiggles still count as a tap)
+    this.ignoreTopHudPx = 90; // don't attack when tapping near HUD
+
     if (this.isMobile) {
-      this.createMobileControls();
+      this.enableDragMoveTapAttack();
     }
 
     // ✅ On-screen debug to confirm mobile controls
     this.add
-      .text(
-        12,
-        52,
-        this.isMobile ? "MOBILE CONTROLS: ON" : "MOBILE CONTROLS: OFF",
-        { fontSize: "14px", color: "#ffffff" }
-      )
+      .text(12, 52, this.isMobile ? "MOBILE CONTROLS: ON" : "MOBILE CONTROLS: OFF", {
+        fontSize: "14px",
+        color: "#ffffff",
+      })
       .setScrollFactor(0)
       .setDepth(3000);
 
@@ -117,18 +115,12 @@ export default class PlayScene extends Phaser.Scene {
 
     // touch damage
     this.physics.add.overlap(this.player, this.enemies, (_, enemy) => {
-      if (this.playerInvulnUntil && this.time.now < this.playerInvulnUntil)
-        return;
+      if (this.playerInvulnUntil && this.time.now < this.playerInvulnUntil) return;
 
       this.damagePlayer(10);
       this.playerInvulnUntil = this.time.now + 500;
 
-      const angle = Phaser.Math.Angle.Between(
-        enemy.x,
-        enemy.y,
-        this.player.x,
-        this.player.y
-      );
+      const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
       this.player.setVelocity(Math.cos(angle) * 380, Math.sin(angle) * 380);
     });
 
@@ -167,115 +159,71 @@ export default class PlayScene extends Phaser.Scene {
   }
 
   // ======================
-  // Mobile Controls
+  // Mobile: drag to move + tap to attack
   // ======================
-  createMobileControls() {
-    const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(2000);
-
-    const placeUI = (w, h) => {
-        const SAFE_BOTTOM = 24;  // good default (prevents clipping)
-        const MARGIN = 26;
-      
-        // attack button (right)
-        const ax = w - (110 + MARGIN);
-        const ay = h - (110 + SAFE_BOTTOM);
-      
-        this.attackBtn?.setPosition(ax, ay);
-        this.attackTxt?.setPosition(ax - 32, ay - 18);
-      
-        // joystick (left)
-        const jx = 120 + MARGIN;
-        const jy = h - (120 + SAFE_BOTTOM);
-      
-        this.joyCenter = { x: jx, y: jy };
-        this.joyBase?.setPosition(jx, jy);
-        this.joyKnob?.setPosition(jx, jy);
-      };
-
-   
-    // Attack button (✅ more visible)
-    this.attackBtn = this.add
-      .circle(this.scale.width - 110, this.scale.height - 110, 80, 0xffffff, 0.25)
-      .setStrokeStyle(4, 0xffffff, 0.65)
-      .setInteractive({ useHandCursor: true });
-
-    this.attackTxt = this.add.text(
-      this.scale.width - 142,
-      this.scale.height - 128,
-      "ATK",
-      { fontSize: "18px", color: "#ffffff" }
-    );
-
-    ui.add([this.attackBtn, this.attackTxt]);
-
-    this.attackBtn.on("pointerdown", () => (this.touchAttack = true));
-    this.attackBtn.on("pointerup", () => (this.touchAttack = false));
-    this.attackBtn.on("pointerout", () => (this.touchAttack = false));
-
-    // Joystick (✅ more visible)
-    const baseR = 70;
-    const knobR = 32;
-
-    this.joyRadius = baseR;
-    this.joyCenter = { x: 120, y: this.scale.height - 120 };
-
-    this.joyBase = this.add
-      .circle(this.joyCenter.x, this.joyCenter.y, baseR, 0xffffff, 0.18)
-      .setStrokeStyle(4, 0xffffff, 0.45);
-
-    this.joyKnob = this.add.circle(
-      this.joyCenter.x,
-      this.joyCenter.y,
-      knobR,
-      0xffffff,
-      0.35
-    );
-
-    ui.add([this.joyBase, this.joyKnob]);
-
-    this.joyPointerId = null;
+  enableDragMoveTapAttack() {
+    // Helps with multi-touch on some devices
+    this.input.addPointer(1);
 
     this.input.on("pointerdown", (p) => {
-      // left side only, so it doesn't conflict with attack button
-      if (p.x > this.scale.width * 0.55) return;
-      this.joyPointerId = p.id;
-      this.updateJoystick(p);
+      if (!p.primary) return;
+
+      this.tapStart = { x: p.x, y: p.y };
+      this.tapMoved = false;
+
+      // start drag-move immediately (feels responsive)
+      this.updateDragMoveFromPointer(p);
     });
 
     this.input.on("pointermove", (p) => {
-      if (this.joyPointerId !== p.id) return;
-      this.updateJoystick(p);
+      if (!p.primary) return;
+      if (!this.tapStart) return;
+
+      const dx = p.x - this.tapStart.x;
+      const dy = p.y - this.tapStart.y;
+
+      if (!this.tapMoved && Math.hypot(dx, dy) > this.tapMoveThreshold) {
+        this.tapMoved = true;
+      }
+
+      this.updateDragMoveFromPointer(p);
     });
 
     this.input.on("pointerup", (p) => {
-      if (this.joyPointerId !== p.id) return;
-      this.joyPointerId = null;
-      this.touchMove = { vx: 0, vy: 0, active: false };
-      this.joyKnob.setPosition(this.joyCenter.x, this.joyCenter.y);
-    });
+      if (!p.primary) return;
 
-    // keep UI positioned on resize
-    this.scale.on("resize", (gs) => placeUI(gs.width, gs.height));
-    placeUI(this.scale.width, this.scale.height);
+      // stop moving when finger lifts
+      this.touchMove = { vx: 0, vy: 0, active: false };
+
+      // TAP = attack (only if not dragged much + not in HUD zone)
+      if (this.tapStart && !this.tapMoved && p.upY > this.ignoreTopHudPx) {
+        this.touchAttack = true;
+      }
+
+      this.tapStart = null;
+      this.tapMoved = false;
+    });
   }
 
-  updateJoystick(pointer) {
-    const dx = pointer.x - this.joyCenter.x;
-    const dy = pointer.y - this.joyCenter.y;
+  updateDragMoveFromPointer(p) {
+    if (!this.tapStart) return;
 
-    const len = Math.sqrt(dx * dx + dy * dy) || 1;
-    const clamped = Math.min(len, this.joyRadius);
+    const dx = p.x - this.tapStart.x;
+    const dy = p.y - this.tapStart.y;
 
-    const nx = (dx / len) * clamped;
-    const ny = (dy / len) * clamped;
+    const len = Math.hypot(dx, dy);
 
-    this.joyKnob.setPosition(this.joyCenter.x + nx, this.joyCenter.y + ny);
+    // if basically stationary, don't move
+    if (len < 6) {
+      this.touchMove = { vx: 0, vy: 0, active: false };
+      return;
+    }
 
-    this.touchMove = {
-      vx: nx / this.joyRadius,
-      vy: ny / this.joyRadius,
-      active: true,
-    };
+    // normalized direction
+    const nx = dx / len;
+    const ny = dy / len;
+
+    this.touchMove = { vx: nx, vy: ny, active: true };
   }
 
   // ======================
@@ -304,7 +252,7 @@ export default class PlayScene extends Phaser.Scene {
       vy *= inv;
     }
 
-    // Mobile movement overrides if joystick active
+    // ✅ Mobile drag movement overrides
     if (this.isMobile && this.touchMove.active) {
       vx = this.touchMove.vx * speed;
       vy = this.touchMove.vy * speed;
@@ -320,10 +268,7 @@ export default class PlayScene extends Phaser.Scene {
 
       const moving = vx !== 0 || vy !== 0;
       if (moving) {
-        if (
-          !this.player.anims.isPlaying ||
-          this.player.anims.currentAnim?.key !== "knight-run"
-        ) {
+        if (!this.player.anims.isPlaying || this.player.anims.currentAnim?.key !== "knight-run") {
           this.player.anims.play("knight-run");
         }
       } else {
@@ -336,20 +281,18 @@ export default class PlayScene extends Phaser.Scene {
       this.physics.moveToObject(e, this.player, 95);
     });
 
-    this.playerStats.attackCooldown = Math.max(
-      0,
-      this.playerStats.attackCooldown - dt
-    );
+    this.playerStats.attackCooldown = Math.max(0, this.playerStats.attackCooldown - dt);
 
     const pressedAttack =
-      Phaser.Input.Keyboard.JustDown(this.attackKey) ||
-      (this.isMobile && this.touchAttack);
+      Phaser.Input.Keyboard.JustDown(this.attackKey) || (this.isMobile && this.touchAttack);
 
     if (pressedAttack && this.playerStats.attackCooldown <= 0) {
       this.playerStats.attackCooldown = 0.55;
       this.playAttack();
-      this.touchAttack = false;
     }
+
+    // consume mobile tap
+    this.touchAttack = false;
   }
 
   playAttack() {
@@ -393,21 +336,11 @@ export default class PlayScene extends Phaser.Scene {
     const atk = this.playerStats.atk;
 
     this.enemies.getChildren().forEach((enemy) => {
-      const d = Phaser.Math.Distance.Between(
-        this.player.x,
-        this.player.y,
-        enemy.x,
-        enemy.y
-      );
+      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
       if (d <= radius) {
         enemy.hp -= atk;
 
-        const ang = Phaser.Math.Angle.Between(
-          this.player.x,
-          this.player.y,
-          enemy.x,
-          enemy.y
-        );
+        const ang = Phaser.Math.Angle.Between(this.player.x, this.player.y, enemy.x, enemy.y);
         enemy.setVelocity(Math.cos(ang) * 420, Math.sin(ang) * 420);
 
         if (enemy.hp <= 0) enemy.destroy();
@@ -419,10 +352,7 @@ export default class PlayScene extends Phaser.Scene {
 
   collectItem(item) {
     if (item.type === "heart") {
-      this.playerStats.hp = Math.min(
-        this.playerStats.maxHp,
-        this.playerStats.hp + 25
-      );
+      this.playerStats.hp = Math.min(this.playerStats.maxHp, this.playerStats.hp + 25);
     } else if (item.type === "sword") {
       this.playerStats.atk += 5;
     }
