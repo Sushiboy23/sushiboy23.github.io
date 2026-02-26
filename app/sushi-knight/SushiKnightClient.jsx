@@ -54,6 +54,7 @@ export default function SushiKnightClient({ onStats }) {
         borderRadius: 16,
         overflow: "hidden",
         border: "1px solid rgba(255,255,255,0.12)",
+        touchAction: "none",
       }}
     />
   );
