@@ -173,22 +173,26 @@ export default class PlayScene extends Phaser.Scene {
     const ui = this.add.container(0, 0).setScrollFactor(0).setDepth(2000);
 
     const placeUI = (w, h) => {
-      // attack button
-      const ax = w - 110;
-      const ay = h - 110;
+        const SAFE_BOTTOM = 24;  // good default (prevents clipping)
+        const MARGIN = 26;
+      
+        // attack button (right)
+        const ax = w - (110 + MARGIN);
+        const ay = h - (110 + SAFE_BOTTOM);
+      
+        this.attackBtn?.setPosition(ax, ay);
+        this.attackTxt?.setPosition(ax - 32, ay - 18);
+      
+        // joystick (left)
+        const jx = 120 + MARGIN;
+        const jy = h - (120 + SAFE_BOTTOM);
+      
+        this.joyCenter = { x: jx, y: jy };
+        this.joyBase?.setPosition(jx, jy);
+        this.joyKnob?.setPosition(jx, jy);
+      };
 
-      this.attackBtn?.setPosition(ax, ay);
-      this.attackTxt?.setPosition(ax - 32, ay - 18);
-
-      // joystick
-      const jx = 120;
-      const jy = h - 120;
-
-      this.joyCenter = { x: jx, y: jy };
-      this.joyBase?.setPosition(jx, jy);
-      this.joyKnob?.setPosition(jx, jy);
-    };
-
+   
     // Attack button (✅ more visible)
     this.attackBtn = this.add
       .circle(this.scale.width - 110, this.scale.height - 110, 80, 0xffffff, 0.25)
