@@ -17,7 +17,10 @@ export default function Page() {
     <main style={{ padding: 24 }}>
       <h1 style={{ fontSize: 28, fontWeight: 800 }}>Sushi Knight Fantasy</h1>
       <p style={{ opacity: 0.8, marginTop: 8 }}>
-        Move: WASD / Arrow Keys · Attack: Space · Collect items to boost HP/ATK
+        Desktop: Move: WASD / Arrow Keys · Attack: Space · Collect items to boost HP/AT 
+      </p>
+      <p style={{ opacity: 0.8, marginTop: 8 }}>
+         Mobile: Drag to move, Tap to attack
       </p>
 
       <div style={{ marginTop: 12, display: "flex", gap: 12, flexWrap: "wrap" }}>
