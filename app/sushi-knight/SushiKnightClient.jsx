@@ -4,10 +4,10 @@ import { useEffect, useRef } from "react";
 import { createSushiKnightGame } from "../../src/games/sushi-knight/game";
 
 export default function SushiKnightClient({ onStats }) {
-  const containerRef = useRef(null);
+  const containerRef = useRef(null);     // Phaser mounts inside this
   const gameRef = useRef(null);
 
-  // ✅ keep latest callback without recreating the game
+  // keep latest callback without recreating the game
   const onStatsRef = useRef(onStats);
   useEffect(() => {
     onStatsRef.current = onStats;
@@ -17,7 +17,6 @@ export default function SushiKnightClient({ onStats }) {
     if (!containerRef.current) return;
     if (gameRef.current) return;
 
-    // pass a stable function into Phaser
     gameRef.current = createSushiKnightGame(containerRef.current, {
       onStats: (data) => onStatsRef.current?.(data),
     });
@@ -27,37 +26,53 @@ export default function SushiKnightClient({ onStats }) {
       gameRef.current = null;
     };
   }, []);
-   /*
-  return (
-    <div
-      ref={containerRef}
-      style={{
-        width: "100%",
-        height: "calc(100vh - 180px)", // fills screen minus header area
-        minHeight: 500,
-        borderRadius: 16,
-        overflow: "hidden",
-        border: "1px solid rgba(255,255,255,0.12)",
-      }}
-    />
-  );
-  */
 
   return (
     <div
-      ref={containerRef}
       style={{
         width: "100%",
-        maxWidth: 1100,
-        height: "70vh",      // ✅ important: gives Phaser space
-        minHeight: 520,      // desktop fallback
-        borderRadius: 16,
-        overflow: "hidden",
-        border: "1px solid rgba(255,255,255,0.12)",
-        touchAction: "none"
+        display: "flex",
+        justifyContent: "center",
       }}
-    />
+    >
+      {/* OUTER WRAP: DO NOT CLIP (lets mobile UI circles show) */}
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 1100,
+
+          // mobile-friendly full height
+          height: "100dvh",
+          // desktop fallback so it doesn't eat the whole page
+          maxHeight: 720,
+          minHeight: 520,
+
+          position: "relative",
+          overflow: "visible", // ✅ important: stop cutting off joystick/attack button
+        }}
+      >
+        {/* INNER MOUNT: Phaser injects <canvas> here */}
+        <div
+          ref={containerRef}
+          style={{
+            width: "100%",
+            height: "100%",
+            borderRadius: 16,
+            border: "1px solid rgba(255,255,255,0.12)",
+            touchAction: "none",
+          }}
+        />
+
+        {/* Round corners on the CANVAS (not the wrapper) */}
+        <style jsx>{`
+          div :global(canvas) {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+            border-radius: 16px;
+          }
+        `}</style>
+      </div>
+    </div>
   );
-
-
 }
