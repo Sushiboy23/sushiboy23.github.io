@@ -19,11 +19,11 @@ export default class PlayScene extends Phaser.Scene {
 
     const groundLayer = map.createLayer("Ground", tileset, 0, 0);
     const propsLayer = map.createLayer("Props", tileset, 0, 0);
-
     propsLayer.setDepth(10);
 
     this.mapW = map.widthInPixels;
     this.mapH = map.heightInPixels;
+
     this.physics.world.setBounds(0, 0, this.mapW, this.mapH);
     this.cameras.main.setBounds(0, 0, this.mapW, this.mapH);
 
@@ -77,38 +77,92 @@ export default class PlayScene extends Phaser.Scene {
     this.attackKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
     // ======================
-    // Input (Mobile) — DRAG to move, TAP to attack
+    // Input (Mobile) - drag to move, tap to attack
     // ======================
-    // ✅ More reliable than os.desktop (some mobile browsers report "desktop")
     this.isMobile =
       this.sys.game.device.input.touch ||
       this.sys.game.device.os.android ||
       this.sys.game.device.os.iOS;
 
-    // Movement vector coming from finger drag (no joystick UI)
-    this.touchMove = { vx: 0, vy: 0, active: false };
+    // Movement drag state
+    this.drag = {
+      movePointerId: null,
+      startX: 0,
+      startY: 0,
+      vx: 0,
+      vy: 0,
+      active: false,
+      moved: false,
+      startTime: 0,
+    };
 
-    // Tap-to-attack flag
-    this.touchAttack = false;
-
-    // Tap/drag detection
-    this.tapStart = null;
-    this.tapMoved = false;
-    this.tapMoveThreshold = 14; // px (tiny wiggles still count as a tap)
-    this.ignoreTopHudPx = 90; // don't attack when tapping near HUD
+    // thresholds (tweak if needed)
+    this.TAP_MAX_MS = 200;        // how quick is a tap
+    this.TAP_MAX_MOVE_PX = 12;    // how little movement counts as a tap
+    this.DRAG_DEADZONE_PX = 10;   // ignore tiny jitter
+    this.DRAG_MAX_PX = 80;        // clamp drag length so speed isn't crazy
 
     if (this.isMobile) {
-      this.enableDragMoveTapAttack();
-    }
+      // allow 2 pointers (move finger + tap finger)
+      this.input.addPointer(2);
 
-    // ✅ On-screen debug to confirm mobile controls
-    this.add
-      .text(12, 52, this.isMobile ? "MOBILE CONTROLS: ON" : "MOBILE CONTROLS: OFF", {
-        fontSize: "14px",
-        color: "#ffffff",
-      })
-      .setScrollFactor(0)
-      .setDepth(3000);
+      this.input.on("pointerdown", (p) => {
+        // If no move pointer yet, this pointer becomes movement pointer
+        if (this.drag.movePointerId === null) {
+          this.drag.movePointerId = p.id;
+          this.drag.startX = p.x;
+          this.drag.startY = p.y;
+          this.drag.vx = 0;
+          this.drag.vy = 0;
+          this.drag.active = true;
+          this.drag.moved = false;
+          this.drag.startTime = this.time.now;
+          return;
+        }
+
+        // Otherwise, any extra finger down = try attack tap immediately
+        this.tryAttack();
+      });
+
+      this.input.on("pointermove", (p) => {
+        if (this.drag.movePointerId !== p.id) return;
+
+        const dx = p.x - this.drag.startX;
+        const dy = p.y - this.drag.startY;
+
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > this.DRAG_DEADZONE_PX) this.drag.moved = true;
+
+        const clamped = Math.min(dist, this.DRAG_MAX_PX);
+        const len = dist || 1;
+
+        // normalized movement vector based on drag
+        const nx = (dx / len) * (clamped / this.DRAG_MAX_PX);
+        const ny = (dy / len) * (clamped / this.DRAG_MAX_PX);
+
+        this.drag.vx = nx; // -1..1 (scaled)
+        this.drag.vy = ny;
+      });
+
+      this.input.on("pointerup", (p) => {
+        if (this.drag.movePointerId !== p.id) return;
+
+        const elapsed = this.time.now - this.drag.startTime;
+
+        // If it was basically a tap (no drag), treat as attack
+        if (!this.drag.moved && elapsed <= this.TAP_MAX_MS) {
+          this.tryAttack();
+        }
+
+        // Reset movement
+        this.drag.movePointerId = null;
+        this.drag.active = false;
+        this.drag.vx = 0;
+        this.drag.vy = 0;
+        this.drag.moved = false;
+      });
+    }
 
     // spawn protection
     this.playerInvulnUntil = this.time.now + 1000;
@@ -159,103 +213,37 @@ export default class PlayScene extends Phaser.Scene {
   }
 
   // ======================
-  // Mobile: drag to move + tap to attack
-  // ======================
-  enableDragMoveTapAttack() {
-    // Helps with multi-touch on some devices
-    this.input.addPointer(1);
-
-    this.input.on("pointerdown", (p) => {
-      if (!p.primary) return;
-
-      this.tapStart = { x: p.x, y: p.y };
-      this.tapMoved = false;
-
-      // start drag-move immediately (feels responsive)
-      this.updateDragMoveFromPointer(p);
-    });
-
-    this.input.on("pointermove", (p) => {
-      if (!p.primary) return;
-      if (!this.tapStart) return;
-
-      const dx = p.x - this.tapStart.x;
-      const dy = p.y - this.tapStart.y;
-
-      if (!this.tapMoved && Math.hypot(dx, dy) > this.tapMoveThreshold) {
-        this.tapMoved = true;
-      }
-
-      this.updateDragMoveFromPointer(p);
-    });
-
-    this.input.on("pointerup", (p) => {
-      if (!p.primary) return;
-
-      // stop moving when finger lifts
-      this.touchMove = { vx: 0, vy: 0, active: false };
-
-      // TAP = attack (only if not dragged much + not in HUD zone)
-      if (this.tapStart && !this.tapMoved && p.upY > this.ignoreTopHudPx) {
-        this.touchAttack = true;
-      }
-
-      this.tapStart = null;
-      this.tapMoved = false;
-    });
-  }
-
-  updateDragMoveFromPointer(p) {
-    if (!this.tapStart) return;
-
-    const dx = p.x - this.tapStart.x;
-    const dy = p.y - this.tapStart.y;
-
-    const len = Math.hypot(dx, dy);
-
-    // if basically stationary, don't move
-    if (len < 6) {
-      this.touchMove = { vx: 0, vy: 0, active: false };
-      return;
-    }
-
-    // normalized direction
-    const nx = dx / len;
-    const ny = dy / len;
-
-    this.touchMove = { vx: nx, vy: ny, active: true };
-  }
-
-  // ======================
   // Main update
   // ======================
   update(_, dtMs) {
     const dt = dtMs / 1000;
 
+    const speed = 280;
+    let vx = 0;
+    let vy = 0;
+
+    // Desktop movement
     const left = this.cursors.left.isDown || this.wasd.A.isDown;
     const right = this.cursors.right.isDown || this.wasd.D.isDown;
     const up = this.cursors.up.isDown || this.wasd.W.isDown;
     const down = this.cursors.down.isDown || this.wasd.S.isDown;
-
-    const speed = 280;
-    let vx = 0,
-      vy = 0;
 
     if (left) vx -= speed;
     if (right) vx += speed;
     if (up) vy -= speed;
     if (down) vy += speed;
 
-    if (vx !== 0 && vy !== 0) {
+    // Mobile overrides with drag
+    if (this.isMobile && this.drag.active) {
+      vx = this.drag.vx * speed;
+      vy = this.drag.vy * speed;
+    }
+
+    // diagonal normalize for desktop only
+    if (!this.isMobile && vx !== 0 && vy !== 0) {
       const inv = 1 / Math.sqrt(2);
       vx *= inv;
       vy *= inv;
-    }
-
-    // ✅ Mobile drag movement overrides
-    if (this.isMobile && this.touchMove.active) {
-      vx = this.touchMove.vx * speed;
-      vy = this.touchMove.vy * speed;
     }
 
     if (vx < 0) this.player.setFlipX(true);
@@ -277,22 +265,24 @@ export default class PlayScene extends Phaser.Scene {
       }
     }
 
+    // Enemies chase player
     this.enemies.getChildren().forEach((e) => {
       this.physics.moveToObject(e, this.player, 95);
     });
 
+    // Attack cooldown
     this.playerStats.attackCooldown = Math.max(0, this.playerStats.attackCooldown - dt);
 
-    const pressedAttack =
-      Phaser.Input.Keyboard.JustDown(this.attackKey) || (this.isMobile && this.touchAttack);
-
-    if (pressedAttack && this.playerStats.attackCooldown <= 0) {
-      this.playerStats.attackCooldown = 0.55;
-      this.playAttack();
+    // Desktop attack
+    if (Phaser.Input.Keyboard.JustDown(this.attackKey)) {
+      this.tryAttack();
     }
+  }
 
-    // consume mobile tap
-    this.touchAttack = false;
+  tryAttack() {
+    if (this.playerStats.attackCooldown > 0) return;
+    this.playerStats.attackCooldown = 0.55;
+    this.playAttack();
   }
 
   playAttack() {
