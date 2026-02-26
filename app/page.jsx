@@ -74,8 +74,7 @@ export default function Home() {
           <Link href="/#skills">Skills</Link>
           <Link href="/#about">About</Link>
           <Link href="/#contact">Contact</Link>
-          <Link href="/sushi">Sushi</Link>
-          <Link href="/sushi-knight">Sushi Knight</Link>
+          <Link href="/sushi-knight">Sushi Knight Fantasy</Link>
         </nav>
       </header>
 

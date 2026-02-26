@@ -15,7 +15,7 @@ export default function Page() {
 
   return (
     <main style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 28, fontWeight: 800 }}>Sushi Knight (Playable)</h1>
+      <h1 style={{ fontSize: 28, fontWeight: 800 }}>Sushi Knight Fantasy</h1>
       <p style={{ opacity: 0.8, marginTop: 8 }}>
         Move: WASD / Arrow Keys · Attack: Space · Collect items to boost HP/ATK
       </p>

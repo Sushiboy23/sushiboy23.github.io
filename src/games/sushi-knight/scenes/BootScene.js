@@ -17,6 +17,10 @@ export default class BootScene extends Phaser.Scene {
     this.load.image("maguro", "/games/sushi-knight/sprites/maguro.png");
     this.load.image("heart", "/games/sushi-knight/sprites/heart.png");
     this.load.image("sword", "/games/sushi-knight/sprites/sword.png");
+    // Map tiles + map json
+    this.load.image("summer_tiles", "/games/sushi-knight/tiles/summer_tileset_plus_props.png");
+    this.load.tilemapTiledJSON("level1", "/games/sushi-knight/maps/level1_plus_props_v2.json");
+
 
     const t = this.add.text(16, 16, "Loading...", { fontSize: "16px" });
     this.load.on("complete", () => t.destroy());
