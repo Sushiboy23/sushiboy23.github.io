@@ -20,6 +20,13 @@ export default class BootScene extends Phaser.Scene {
     // Map tiles + map json
     this.load.image("summer_tiles", "/games/sushi-knight/tiles/summer_tileset_plus_props.png");
     this.load.tilemapTiledJSON("level1", "/games/sushi-knight/maps/level1_plus_props_v2.json");
+    // Attack animations
+    this.load.image("rottenEgg", "/games/sushi-knight/sprites/rottenEgg.png");
+    this.load.image("rottenPuddle", "/games/sushi-knight/sprites/rottenPuddle.png");
+    // NEW: maguro attack frames (3 separate PNGs)
+    this.load.image("maguroAtk1", "/games/sushi-knight/sprites/maguroAtk1.png");
+    this.load.image("maguroAtk2", "/games/sushi-knight/sprites/maguroAtk2.png");
+    this.load.image("maguroAtk3", "/games/sushi-knight/sprites/maguroAtk3.png");
 
 
     const t = this.add.text(16, 16, "Loading...", { fontSize: "16px" });

@@ -58,13 +58,30 @@ export default class PlayScene extends Phaser.Scene {
     this.enemies = this.physics.add.group();
     this.items = this.physics.add.group({ immovable: true, allowGravity: false });
 
+    // ======================
+    // Enemy projectiles + hazards
+    // ======================
+    this.enemyProjectiles = this.physics.add.group({
+      allowGravity: false,
+      immovable: true,
+    });
+
+    this.hazards = this.physics.add.staticGroup();
+
+    // Spawn enemies
     this.spawnEnemy("tamago", 1200, 300);
     this.spawnEnemy("maguro", 1500, 700);
+    this.spawnEnemy("maguro", 1500, 600);
+    this.spawnEnemy("maguro", 1500, 500);
     this.spawnEnemy("tamago", 1100, 900);
+    this.spawnEnemy("tamago", 1100, 800);
+    this.spawnEnemy("tamago", 1100, 700);
+    this.spawnEnemy("tamago", 1100, 600);
 
     this.physics.add.collider(this.enemies, propsLayer);
     this.physics.add.collider(this.enemies, this.enemies);
 
+    // Items
     this.spawnItem("heart", 520, 520);
     this.spawnItem("sword", 820, 650);
     this.spawnItem("heart", 1100, 520);
@@ -84,7 +101,6 @@ export default class PlayScene extends Phaser.Scene {
       this.sys.game.device.os.android ||
       this.sys.game.device.os.iOS;
 
-    // Movement drag state
     this.drag = {
       movePointerId: null,
       startX: 0,
@@ -96,18 +112,15 @@ export default class PlayScene extends Phaser.Scene {
       startTime: 0,
     };
 
-    // thresholds (tweak if needed)
-    this.TAP_MAX_MS = 200;        // how quick is a tap
-    this.TAP_MAX_MOVE_PX = 12;    // how little movement counts as a tap
-    this.DRAG_DEADZONE_PX = 10;   // ignore tiny jitter
-    this.DRAG_MAX_PX = 80;        // clamp drag length so speed isn't crazy
+    this.TAP_MAX_MS = 200;
+    this.TAP_MAX_MOVE_PX = 12;
+    this.DRAG_DEADZONE_PX = 10;
+    this.DRAG_MAX_PX = 80;
 
     if (this.isMobile) {
-      // allow 2 pointers (move finger + tap finger)
       this.input.addPointer(2);
 
       this.input.on("pointerdown", (p) => {
-        // If no move pointer yet, this pointer becomes movement pointer
         if (this.drag.movePointerId === null) {
           this.drag.movePointerId = p.id;
           this.drag.startX = p.x;
@@ -120,7 +133,6 @@ export default class PlayScene extends Phaser.Scene {
           return;
         }
 
-        // Otherwise, any extra finger down = try attack tap immediately
         this.tryAttack();
       });
 
@@ -137,11 +149,10 @@ export default class PlayScene extends Phaser.Scene {
         const clamped = Math.min(dist, this.DRAG_MAX_PX);
         const len = dist || 1;
 
-        // normalized movement vector based on drag
         const nx = (dx / len) * (clamped / this.DRAG_MAX_PX);
         const ny = (dy / len) * (clamped / this.DRAG_MAX_PX);
 
-        this.drag.vx = nx; // -1..1 (scaled)
+        this.drag.vx = nx;
         this.drag.vy = ny;
       });
 
@@ -150,12 +161,10 @@ export default class PlayScene extends Phaser.Scene {
 
         const elapsed = this.time.now - this.drag.startTime;
 
-        // If it was basically a tap (no drag), treat as attack
         if (!this.drag.moved && elapsed <= this.TAP_MAX_MS) {
           this.tryAttack();
         }
 
-        // Reset movement
         this.drag.movePointerId = null;
         this.drag.active = false;
         this.drag.vx = 0;
@@ -164,18 +173,55 @@ export default class PlayScene extends Phaser.Scene {
       });
     }
 
+    // ======================
+    // Animations: Maguro attack (3 separate images)
+    // Requires asset keys: "maguroAtk1","maguroAtk2","maguroAtk3"
+    // ======================
+    if (!this.anims.exists("maguro-attack")) {
+      this.anims.create({
+        key: "maguro-attack",
+        frames: [{ key: "maguroAtk1" }, { key: "maguroAtk2" }, { key: "maguroAtk3" }],
+        frameRate: 10,
+        repeat: 0,
+      });
+    }
+
     // spawn protection
     this.playerInvulnUntil = this.time.now + 1000;
 
-    // touch damage
+    // ======================
+    // Contact damage:
+    // - Tamago: ranged only (no contact damage)
+    // - Maguro: ONLY damages during its attack hit window (enemy.hitActive)
+    // ======================
     this.physics.add.overlap(this.player, this.enemies, (_, enemy) => {
+      if (!enemy?.active) return;
+      if (enemy?.type === "tamago") return;
+
       if (this.playerInvulnUntil && this.time.now < this.playerInvulnUntil) return;
+
+      if (enemy.type === "maguro") {
+        if (!enemy.hitActive) return;
+      } else {
+        const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
+        if (d > 28) return;
+      }
 
       this.damagePlayer(10);
       this.playerInvulnUntil = this.time.now + 500;
 
       const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
       this.player.setVelocity(Math.cos(angle) * 380, Math.sin(angle) * 380);
+    });
+
+    // hazard damage
+    this.physics.add.overlap(this.player, this.hazards, (_, hazard) => {
+      if (this.playerInvulnUntil && this.time.now < this.playerInvulnUntil) return;
+
+      const dmg = hazard.getData("damage") ?? 8;
+      this.damagePlayer(dmg);
+
+      this.playerInvulnUntil = this.time.now + 450;
     });
 
     // pickup items
@@ -212,9 +258,6 @@ export default class PlayScene extends Phaser.Scene {
     });
   }
 
-  // ======================
-  // Main update
-  // ======================
   update(_, dtMs) {
     const dt = dtMs / 1000;
 
@@ -265,18 +308,55 @@ export default class PlayScene extends Phaser.Scene {
       }
     }
 
-    // Enemies chase player
+    // ======================
+    // Enemy AI
+    // ======================
     this.enemies.getChildren().forEach((e) => {
-      this.physics.moveToObject(e, this.player, 95);
+      if (!e.active) return;
+
+      if (e.type === "maguro") {
+        if (e.attackCooldown === undefined) e.attackCooldown = 0;
+        if (e.isAttacking === undefined) e.isAttacking = false;
+        if (e.hitActive === undefined) e.hitActive = false;
+
+        if (e.baseDisplayW === undefined) e.baseDisplayW = e.displayWidth;
+        if (e.baseDisplayH === undefined) e.baseDisplayH = e.displayHeight;
+
+        e.attackCooldown = Math.max(0, e.attackCooldown - dt);
+
+        const dist = Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y);
+
+        if (e.isAttacking) {
+          e.setVelocity(0, 0);
+          if (e.baseDisplayW && e.baseDisplayH) e.setDisplaySize(e.baseDisplayW, e.baseDisplayH);
+          return;
+        }
+
+        // ✅ FIX: chase until actually in attack range (no dead zone)
+        const attackStartRange = 52;
+
+        if (dist > attackStartRange) {
+          this.physics.moveToObject(e, this.player, 95);
+        } else {
+          e.setVelocity(0, 0);
+          if (e.attackCooldown <= 0) this.maguroAttack(e);
+        }
+      } else if (e.type === "tamago") {
+        const d = Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y);
+        if (d < 180) {
+          const ang = Phaser.Math.Angle.Between(this.player.x, this.player.y, e.x, e.y);
+          e.setVelocity(Math.cos(ang) * 90, Math.sin(ang) * 90);
+        } else {
+          e.setVelocity(0, 0);
+        }
+      } else {
+        this.physics.moveToObject(e, this.player, 95);
+      }
     });
 
-    // Attack cooldown
     this.playerStats.attackCooldown = Math.max(0, this.playerStats.attackCooldown - dt);
 
-    // Desktop attack
-    if (Phaser.Input.Keyboard.JustDown(this.attackKey)) {
-      this.tryAttack();
-    }
+    if (Phaser.Input.Keyboard.JustDown(this.attackKey)) this.tryAttack();
   }
 
   tryAttack() {
@@ -292,7 +372,6 @@ export default class PlayScene extends Phaser.Scene {
     this.player.setVelocity(0, 0);
 
     this.player.anims.play("knight-attack", true);
-
     this.time.delayedCall(120, () => this.slashAttack());
 
     this.player.once(Phaser.Animations.Events.ANIMATION_COMPLETE, (anim) => {
@@ -306,8 +385,28 @@ export default class PlayScene extends Phaser.Scene {
   spawnEnemy(type, x, y) {
     const e = this.enemies.create(x, y, type).setScale(0.25);
     e.setCollideWorldBounds(true);
+
+    e.type = type;
     e.hp = type === "maguro" ? 70 : 50;
     e.atk = type === "maguro" ? 12 : 8;
+
+    if (type === "maguro") {
+      e.baseDisplayW = e.displayWidth;
+      e.baseDisplayH = e.displayHeight;
+    }
+
+    if (type === "tamago") {
+      e.spitEvent = this.time.addEvent({
+        delay: Phaser.Math.Between(1400, 2200),
+        loop: true,
+        callback: () => this.tamagoSpit(e),
+      });
+
+      e.on("destroy", () => {
+        if (e.spitEvent) e.spitEvent.remove(false);
+      });
+    }
+
     return e;
   }
 
@@ -338,6 +437,116 @@ export default class PlayScene extends Phaser.Scene {
     });
 
     this.updateHud();
+  }
+
+  maguroAttack(enemy) {
+    enemy.isAttacking = true;
+    enemy.hitActive = false;
+    enemy.attackCooldown = 1.2;
+
+    enemy.setFlipX(this.player.x < enemy.x);
+
+    if (enemy.baseDisplayW && enemy.baseDisplayH) {
+      enemy.setDisplaySize(enemy.baseDisplayW, enemy.baseDisplayH);
+    }
+
+    enemy.anims.play("maguro-attack", true);
+
+    this.time.delayedCall(140, () => {
+      if (!enemy.active) return;
+      if (enemy.baseDisplayW && enemy.baseDisplayH) {
+        enemy.setDisplaySize(enemy.baseDisplayW, enemy.baseDisplayH);
+      }
+      enemy.hitActive = true;
+
+      this.time.delayedCall(140, () => {
+        if (!enemy.active) return;
+        if (enemy.baseDisplayW && enemy.baseDisplayH) {
+          enemy.setDisplaySize(enemy.baseDisplayW, enemy.baseDisplayH);
+        }
+        enemy.hitActive = false;
+      });
+    });
+
+    const finish = () => {
+      if (!enemy.active) return;
+      enemy.isAttacking = false;
+      enemy.hitActive = false;
+      enemy.setTexture("maguro");
+
+      if (enemy.baseDisplayW && enemy.baseDisplayH) {
+        enemy.setDisplaySize(enemy.baseDisplayW, enemy.baseDisplayH);
+      }
+    };
+
+    enemy.once(Phaser.Animations.Events.ANIMATION_COMPLETE_KEY + "maguro-attack", finish);
+
+    // shorter lock (change 3)
+    this.time.delayedCall(320, finish);
+  }
+
+  tamagoSpit(tamago) {
+    if (!tamago?.active) return;
+    if (!this.player?.active) return;
+
+    const dist = Phaser.Math.Distance.Between(tamago.x, tamago.y, this.player.x, this.player.y);
+    if (dist > 520) return;
+
+    const dir = new Phaser.Math.Vector2(this.player.x - tamago.x, this.player.y - tamago.y);
+    if (dir.lengthSq() < 1) return;
+    dir.normalize();
+
+    const spread = Phaser.Math.FloatBetween(-0.25, 0.25);
+    dir.rotate(spread);
+
+    const egg = this.enemyProjectiles.get(tamago.x, tamago.y, "rottenEgg");
+    if (!egg) return;
+
+    egg.setActive(true).setVisible(true);
+    egg.body.enable = true;
+
+    egg.setDepth(12);
+    egg.setScale(0.05);
+
+    const speed = 180;
+    egg.setVelocity(dir.x * speed, dir.y * speed);
+
+    const flightMs = 500;
+    this.time.delayedCall(flightMs, () => {
+      if (!egg.active) return;
+
+      const landX = egg.x;
+      const landY = egg.y;
+
+      egg.setVelocity(0, 0);
+      egg.body.enable = false;
+      egg.setActive(false).setVisible(false);
+
+      this.spawnRottenPuddle(landX, landY);
+    });
+  }
+
+  spawnRottenPuddle(x, y) {
+    const puddle = this.hazards.create(x, y, "rottenPuddle");
+
+    puddle.setDepth(5);
+    puddle.setScale(0.05);
+    puddle.setData("damage", 8);
+
+    puddle.refreshBody();
+
+    if (puddle.body) {
+      const w = puddle.displayWidth * 0.6;
+      const h = puddle.displayHeight * 0.6;
+
+      puddle.body.setSize(w, h);
+      puddle.body.setOffset((puddle.displayWidth - w) / 2, (puddle.displayHeight - h) / 2);
+      puddle.body.updateFromGameObject();
+    }
+
+    this.time.delayedCall(4500, () => {
+      if (puddle.active) puddle.destroy();
+    });
   }
 
   collectItem(item) {
