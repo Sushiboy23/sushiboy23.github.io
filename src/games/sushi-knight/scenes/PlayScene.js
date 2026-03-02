@@ -53,10 +53,14 @@ export default class PlayScene extends Phaser.Scene {
     this.physics.add.collider(this.player, propsLayer);
 
     // ======================
-    // Enemies + Items
+    // Enemies
     // ======================
     this.enemies = this.physics.add.group();
-    this.items = this.physics.add.group({ immovable: true, allowGravity: false });
+
+    // ======================
+    // Items (FIXED): use staticGroup + refreshBody + smaller hitbox
+    // ======================
+    this.items = this.physics.add.staticGroup();
 
     // ======================
     // Enemy projectiles + hazards
@@ -70,13 +74,17 @@ export default class PlayScene extends Phaser.Scene {
 
     // Spawn enemies
     this.spawnEnemy("tamago", 1200, 300);
-    this.spawnEnemy("maguro", 1500, 700);
-    this.spawnEnemy("maguro", 1500, 600);
-    this.spawnEnemy("maguro", 1500, 500);
     this.spawnEnemy("tamago", 1100, 900);
     this.spawnEnemy("tamago", 1100, 800);
     this.spawnEnemy("tamago", 1100, 700);
     this.spawnEnemy("tamago", 1100, 600);
+    this.spawnEnemy("tamago", 1100, 500);
+
+    this.spawnEnemy("maguro", 1500, 700);
+    this.spawnEnemy("maguro", 1500, 600);
+    this.spawnEnemy("maguro", 1500, 500);
+    this.spawnEnemy("maguro", 1500, 400);
+    
 
     this.physics.add.collider(this.enemies, propsLayer);
     this.physics.add.collider(this.enemies, this.enemies);
@@ -84,6 +92,7 @@ export default class PlayScene extends Phaser.Scene {
     // Items
     this.spawnItem("heart", 520, 520);
     this.spawnItem("sword", 820, 650);
+    this.spawnItem("sword", 820, 1000);
     this.spawnItem("heart", 1100, 520);
 
     // ======================
@@ -143,7 +152,6 @@ export default class PlayScene extends Phaser.Scene {
         const dy = p.y - this.drag.startY;
 
         const dist = Math.sqrt(dx * dx + dy * dy);
-
         if (dist > this.DRAG_DEADZONE_PX) this.drag.moved = true;
 
         const clamped = Math.min(dist, this.DRAG_MAX_PX);
@@ -214,7 +222,9 @@ export default class PlayScene extends Phaser.Scene {
       this.player.setVelocity(Math.cos(angle) * 380, Math.sin(angle) * 380);
     });
 
-    // hazard damage
+    // ======================
+    // Hazard damage: step into rotten puddle
+    // ======================
     this.physics.add.overlap(this.player, this.hazards, (_, hazard) => {
       if (this.playerInvulnUntil && this.time.now < this.playerInvulnUntil) return;
 
@@ -224,8 +234,12 @@ export default class PlayScene extends Phaser.Scene {
       this.playerInvulnUntil = this.time.now + 450;
     });
 
-    // pickup items
+    // ======================
+    // Pickup items (FIXED): also require true proximity
+    // ======================
     this.physics.add.overlap(this.player, this.items, (_, item) => {
+      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, item.x, item.y);
+      if (d > 26) return; // tweak 20–34
       this.collectItem(item);
     });
 
@@ -258,6 +272,9 @@ export default class PlayScene extends Phaser.Scene {
     });
   }
 
+  // ======================
+  // Main update
+  // ======================
   update(_, dtMs) {
     const dt = dtMs / 1000;
 
@@ -332,7 +349,7 @@ export default class PlayScene extends Phaser.Scene {
           return;
         }
 
-        // ✅ FIX: chase until actually in attack range (no dead zone)
+        // chase until actually in attack range
         const attackStartRange = 52;
 
         if (dist > attackStartRange) {
@@ -342,20 +359,17 @@ export default class PlayScene extends Phaser.Scene {
           if (e.attackCooldown <= 0) this.maguroAttack(e);
         }
       } else if (e.type === "tamago") {
-        const d = Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y);
-        if (d < 180) {
-          const ang = Phaser.Math.Angle.Between(this.player.x, this.player.y, e.x, e.y);
-          e.setVelocity(Math.cos(ang) * 90, Math.sin(ang) * 90);
-        } else {
-          e.setVelocity(0, 0);
-        }
+        // Tamago chases so puddles land more relevant to player position
+        this.physics.moveToObject(e, this.player, 75);
       } else {
         this.physics.moveToObject(e, this.player, 95);
       }
     });
 
+    // Player attack cooldown
     this.playerStats.attackCooldown = Math.max(0, this.playerStats.attackCooldown - dt);
 
+    // Desktop attack
     if (Phaser.Input.Keyboard.JustDown(this.attackKey)) this.tryAttack();
   }
 
@@ -395,9 +409,10 @@ export default class PlayScene extends Phaser.Scene {
       e.baseDisplayH = e.displayHeight;
     }
 
+    // Tamago spits rotten eggs
     if (type === "tamago") {
       e.spitEvent = this.time.addEvent({
-        delay: Phaser.Math.Between(1400, 2200),
+        delay: Phaser.Math.Between(1200, 1900),
         loop: true,
         callback: () => this.tamagoSpit(e),
       });
@@ -410,10 +425,27 @@ export default class PlayScene extends Phaser.Scene {
     return e;
   }
 
+  // ======================
+  // Items (FIXED): static body refresh + smaller hitbox
+  // ======================
   spawnItem(type, x, y) {
     const item = this.items.create(x, y, type).setScale(0.25);
     item.type = type;
-    item.setImmovable(true);
+
+    // IMPORTANT: static bodies do NOT auto-resize when you scale
+    item.refreshBody();
+
+    // shrink pickup hitbox so you must be close
+    if (item.body) {
+      const w = item.displayWidth * 0.55;
+      const h = item.displayHeight * 0.55;
+
+      item.body.setSize(w, h);
+      item.body.setOffset((item.displayWidth - w) / 2, (item.displayHeight - h) / 2);
+
+      item.refreshBody();
+    }
+
     return item;
   }
 
@@ -439,6 +471,9 @@ export default class PlayScene extends Phaser.Scene {
     this.updateHud();
   }
 
+  // ======================
+  // Maguro attack (animation + hit window) + size lock
+  // ======================
   maguroAttack(enemy) {
     enemy.isAttacking = true;
     enemy.hitActive = false;
@@ -472,6 +507,7 @@ export default class PlayScene extends Phaser.Scene {
       if (!enemy.active) return;
       enemy.isAttacking = false;
       enemy.hitActive = false;
+
       enemy.setTexture("maguro");
 
       if (enemy.baseDisplayW && enemy.baseDisplayH) {
@@ -481,10 +517,13 @@ export default class PlayScene extends Phaser.Scene {
 
     enemy.once(Phaser.Animations.Events.ANIMATION_COMPLETE_KEY + "maguro-attack", finish);
 
-    // shorter lock (change 3)
+    // shorter lock so maguro resumes chasing sooner
     this.time.delayedCall(320, finish);
   }
 
+  // ======================
+  // Tamago spit: aim at player's CURRENT position
+  // ======================
   tamagoSpit(tamago) {
     if (!tamago?.active) return;
     if (!this.player?.active) return;
@@ -492,12 +531,17 @@ export default class PlayScene extends Phaser.Scene {
     const dist = Phaser.Math.Distance.Between(tamago.x, tamago.y, this.player.x, this.player.y);
     if (dist > 520) return;
 
-    const dir = new Phaser.Math.Vector2(this.player.x - tamago.x, this.player.y - tamago.y);
+    const targetX = this.player.x;
+    const targetY = this.player.y;
+
+    const dir = new Phaser.Math.Vector2(targetX - tamago.x, targetY - tamago.y);
     if (dir.lengthSq() < 1) return;
+
+    const distanceToTarget = dir.length();
     dir.normalize();
 
-    const spread = Phaser.Math.FloatBetween(-0.25, 0.25);
-    dir.rotate(spread);
+    // small spread so it doesn't feel perfect
+    dir.rotate(Phaser.Math.FloatBetween(-0.18, 0.18));
 
     const egg = this.enemyProjectiles.get(tamago.x, tamago.y, "rottenEgg");
     if (!egg) return;
@@ -508,10 +552,11 @@ export default class PlayScene extends Phaser.Scene {
     egg.setDepth(12);
     egg.setScale(0.05);
 
-    const speed = 180;
+    const speed = 220;
     egg.setVelocity(dir.x * speed, dir.y * speed);
 
-    const flightMs = 500;
+    const flightMs = Phaser.Math.Clamp((distanceToTarget / speed) * 1000, 180, 650);
+
     this.time.delayedCall(flightMs, () => {
       if (!egg.active) return;
 
@@ -533,15 +578,18 @@ export default class PlayScene extends Phaser.Scene {
     puddle.setScale(0.05);
     puddle.setData("damage", 8);
 
+    // IMPORTANT: static bodies do NOT auto-resize when you scale
     puddle.refreshBody();
 
+    // shrink hitbox
     if (puddle.body) {
       const w = puddle.displayWidth * 0.6;
       const h = puddle.displayHeight * 0.6;
 
       puddle.body.setSize(w, h);
       puddle.body.setOffset((puddle.displayWidth - w) / 2, (puddle.displayHeight - h) / 2);
-      puddle.body.updateFromGameObject();
+
+      puddle.refreshBody();
     }
 
     this.time.delayedCall(4500, () => {
